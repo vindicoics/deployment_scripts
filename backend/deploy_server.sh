@@ -1,69 +1,14 @@
 #!/bin/bash
 
-# This script is used to deploy the server to Google Cloud Run.
-# It automatically imports secrets from Google Cloud Secret Manager based on labels.
-# It also handles the service key and .gitignore modifications.
-# Now includes an auto-update feature with config preservation.
+# This script deploys a server to Google Cloud Run.
+# It handles versioning, updates package.json, and performs git operations before deployment.
+# It also includes an auto-update feature.
 
 # Author @VindicoRory
 
-# ===========================================
-# CONFIGURATION SECTION - MODIFY VALUES HERE
-# ===========================================
-
-# Google Cloud Run Configuration
-PROJECT_ID="your-project-id-here"        # Your Google Cloud Project ID
-DEPLOYMENT_NAME="your-deployment-name"   # Name of your Cloud Run service
-DEPLOYMENT_REGION="europe-west1"         # Region for deployment (e.g., europe-west1)
-
-# Deployment Source Configuration
-SOURCE_PATH="."                          # Path to the source code (. for current directory)
-
-# Environment Configuration
-ENVIRONMENT="staging"                    # Environment (e.g., staging, production)
-SECRET_LABEL="env=$ENVIRONMENT"          # Label for selecting secrets
-
-# Optional Configuration
-SERVICE_KEY_NAME=""                      # Firebase Service Key Name (if applicable)
-
-# ===========================================
-# END OF CONFIGURATION SECTION
-# ===========================================
-
-# --- Auto-update Configuration ---
-REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
+VERSION="2.0.0"
 SCRIPT_NAME="$(basename "$0")"
-VERSION="1.0.0"
-
-# List of configuration variables to preserve during updates
-CONFIG_VARS=(
-    "PROJECT_ID"
-    "DEPLOYMENT_NAME"
-    "DEPLOYMENT_REGION"
-    "SOURCE_PATH"
-    "ENVIRONMENT"
-    "SECRET_LABEL"
-    "SERVICE_KEY_NAME"
-)
-
-# Function to extract configuration
-extract_config() {
-    local config_file="/tmp/${SCRIPT_NAME}_config"
-    for var in "${CONFIG_VARS[@]}"; do
-        if [ -n "${!var}" ]; then
-            echo "${var}='${!var}'" >> "$config_file"
-        fi
-    done
-}
-
-# Function to apply configuration
-apply_config() {
-    local config_file="/tmp/${SCRIPT_NAME}_config"
-    if [ -f "$config_file" ]; then
-        source "$config_file"
-        rm "$config_file"
-    fi
-}
+REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
 
 # Function to check for updates
 check_for_updates() {
@@ -76,11 +21,10 @@ check_for_updates() {
                 log_message "${GREEN}✅ Update available: $remote_version${NC}"
                 read -p "Do you want to update? (y/n): " update_confirm
                 if [[ $update_confirm == [Yy] ]]; then
-                    extract_config
                     mv "$tmp_file" "$0"
                     chmod +x "$0"
-                    log_message "${GREEN}✅ Script updated. Restarting with preserved config...${NC}"
-                    exec "$0" "$@"
+                    log_message "${GREEN}✅ Script updated. Please run the command again.${NC}"
+                    exit 0
                 else
                     log_message "${YELLOW}⚠️ Update skipped.${NC}"
                 fi
@@ -92,6 +36,103 @@ check_for_updates() {
         log_message "${RED}❌ Failed to check for updates.${NC}"
     fi
 }
+
+# Function to update version
+update_version() {
+    echo "Select version update type:"
+    echo "1) Major"
+    echo "2) Minor"
+    echo "3) Patch"
+    echo "4) Manual"
+    read -p "Enter your choice (1-4): " version_choice
+
+    case $version_choice in
+        1) npm version major ;;
+        2) npm version minor ;;
+        3) npm version patch ;;
+        4)
+            read -p "Enter the new version number: " new_version
+            npm version $new_version --no-git-tag-version
+            ;;
+        *)
+            log_message "${RED}Invalid choice. Skipping version update.${NC}"
+            return
+            ;;
+    esac
+
+    log_message "${GREEN}✅ package.json updated${NC}"
+}
+
+# Function to commit and push changes
+commit_and_push() {
+    git add package.json
+    git commit -m "Update version for deployment"
+    git push origin HEAD
+
+    if [ $? -eq 0 ]; then
+        log_message "${GREEN}✅ Changes committed and pushed successfully${NC}"
+    else
+        log_message "${RED}❌ Failed to commit and push changes${NC}"
+        exit 1
+    fi
+}
+
+# Function to display script usage
+usage() {
+    echo "Usage: $0 -e <environment> -p <project-id> -n <deployment-name> [OPTIONS]"
+    echo
+    echo "Required:"
+    echo "  -e    Environment (e.g., staging, production)"
+    echo "  -p    Google Cloud Project ID"
+    echo "  -n    Name of your Cloud Run service"
+    echo
+    echo "Options:"
+    echo "  -r    Deployment region (default: europe-west1)"
+    echo "  -s    Source path (default: current directory)"
+    echo "  -l    Secret label (default: env=<environment>)"
+    echo "  -k    Service key name"
+    echo "  -y    Skip deployment confirmation"
+    echo "  -u    Check for updates"
+    echo "  -h    Display this help message"
+    exit 1
+}
+
+# Default values
+DEPLOYMENT_REGION="europe-west1"
+SOURCE_PATH="."
+SKIP_CONFIRMATION=false
+CHECK_UPDATES=false
+
+# Parse command line arguments
+while getopts "e:p:n:r:s:l:k:yuh" opt; do
+  case $opt in
+    e) ENVIRONMENT="$OPTARG" ;;
+    p) PROJECT_ID="$OPTARG" ;;
+    n) DEPLOYMENT_NAME="$OPTARG" ;;
+    r) DEPLOYMENT_REGION="$OPTARG" ;;
+    s) SOURCE_PATH="$OPTARG" ;;
+    l) SECRET_LABEL="$OPTARG" ;;
+    k) SERVICE_KEY_NAME="$OPTARG" ;;
+    y) SKIP_CONFIRMATION=true ;;
+    u) CHECK_UPDATES=true ;;
+    h) usage ;;
+    \?) echo "Invalid option -$OPTARG" >&2; usage ;;
+  esac
+done
+
+# Check for updates if flag is set
+if [ "$CHECK_UPDATES" = true ]; then
+    check_for_updates
+fi
+
+# Check for required arguments
+if [ -z "$ENVIRONMENT" ] || [ -z "$PROJECT_ID" ] || [ -z "$DEPLOYMENT_NAME" ]; then
+    echo "Error: Missing required arguments"
+    usage
+fi
+
+# Set default SECRET_LABEL if not provided
+SECRET_LABEL=${SECRET_LABEL:-"env=$ENVIRONMENT"}
 
 # Define color codes for output
 RED='\033[0;31m'
@@ -190,26 +231,13 @@ update_dockerfile_env() {
     fi
 }
 
-# Parse command line arguments
-SKIP_CONFIRMATION=false
-while getopts ":y" opt; do
-  case $opt in
-    y)
-      SKIP_CONFIRMATION=true
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      exit 1
-      ;;
-  esac
-done
-
 # --- Main Script Execution ---
 
-# Check for updates
-check_for_updates "$@"
-
 echo -e "${YELLOW}🚀 Starting Deployment Process... ${RED}($ENVIRONMENT) ${NC}"
+
+# Version update and git operations
+update_version
+commit_and_push
 
 # Confirmation before Deployment
 if [ "$SKIP_CONFIRMATION" = false ]; then
@@ -264,6 +292,8 @@ fi
 uncomment_gitignore_entries
 
 # Remove service_key and .npmrc files from git cache
-git rm --cached $SERVICE_KEY_NAME .npmrc >> /dev/null 2>&1
+if [ -n "$SERVICE_KEY_NAME" ]; then
+    git rm --cached $SERVICE_KEY_NAME .npmrc >> /dev/null 2>&1
+fi
 
 # --- Script End ---
