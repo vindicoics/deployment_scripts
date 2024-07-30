@@ -70,7 +70,7 @@ update_version() {
             read -p "Enter the new version number: " new_version
             npm version $new_version --no-git-tag-version
             ;;
-        *) 
+        *)
             log_message "${RED}Invalid choice. Skipping version update.${NC}"
             return
             ;;
@@ -220,6 +220,7 @@ done
 # Check for updates if flag is set
 if [ "$CHECK_UPDATES" = true ]; then
     check_for_updates
+    exit 0
 fi
 
 # Check for required arguments
