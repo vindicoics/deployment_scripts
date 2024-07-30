@@ -10,7 +10,7 @@
 # --- Auto-update Configuration ---
 REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend/"
 SCRIPT_NAME="$(basename "$0")"
-VERSION="1.0"
+VERSION="1.0.0"
 
 # Function to check for updates
 check_for_updates() {
