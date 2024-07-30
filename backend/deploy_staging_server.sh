@@ -10,7 +10,7 @@
 # --- Auto-update Configuration ---
 REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
 SCRIPT_NAME="$(basename "$0")"
-VERSION="1.1"
+VERSION="1.0.0"
 
 # --- Configuration Variables ---
 # These variables will be preserved across updates
