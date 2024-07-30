@@ -31,7 +31,7 @@ SERVICE_KEY_NAME=""                      # Firebase Service Key Name (if applica
 # ===========================================
 
 # --- Auto-update Configuration ---
-REPO_URL="https://raw.githubusercontent.com/yourusername/yourrepository/main"
+REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
 SCRIPT_NAME="$(basename "$0")"
 VERSION="1.0.0"
 
