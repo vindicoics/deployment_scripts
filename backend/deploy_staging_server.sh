@@ -7,13 +7,35 @@
 
 # Author @VindicoRory
 
+# ===========================================
+# CONFIGURATION SECTION - MODIFY VALUES HERE
+# ===========================================
+
+# Google Cloud Run Configuration
+PROJECT_ID="your-project-id-here"        # Your Google Cloud Project ID
+DEPLOYMENT_NAME="your-deployment-name"   # Name of your Cloud Run service
+DEPLOYMENT_REGION="europe-west1"         # Region for deployment (e.g., europe-west1)
+
+# Deployment Source Configuration
+SOURCE_PATH="."                          # Path to the source code (. for current directory)
+
+# Environment Configuration
+ENVIRONMENT="staging"                    # Environment (e.g., staging, production)
+SECRET_LABEL="env=$ENVIRONMENT"          # Label for selecting secrets
+
+# Optional Configuration
+SERVICE_KEY_NAME=""                      # Firebase Service Key Name (if applicable)
+
+# ===========================================
+# END OF CONFIGURATION SECTION
+# ===========================================
+
 # --- Auto-update Configuration ---
-REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
+REPO_URL="https://raw.githubusercontent.com/yourusername/yourrepository/main"
 SCRIPT_NAME="$(basename "$0")"
 VERSION="1.0.0"
 
-# --- Configuration Variables ---
-# These variables will be preserved across updates
+# List of configuration variables to preserve during updates
 CONFIG_VARS=(
     "PROJECT_ID"
     "DEPLOYMENT_NAME"
@@ -70,20 +92,6 @@ check_for_updates() {
         log_message "${RED}❌ Failed to check for updates.${NC}"
     fi
 }
-
-# Set default values for configuration variables
-PROJECT_ID=""
-DEPLOYMENT_NAME=""
-DEPLOYMENT_REGION="europe-west1"
-SOURCE_PATH="."
-ENVIRONMENT="staging"
-SECRET_LABEL="env=$ENVIRONMENT"
-SERVICE_KEY_NAME=""
-
-# Apply saved configuration (if any)
-apply_config
-
-# --- Rest of the script (functions and main logic) remains the same ---
 
 # Define color codes for output
 RED='\033[0;31m'
