@@ -10,6 +10,22 @@ VERSION="2.0.0"
 SCRIPT_NAME="$(basename "$0")"
 REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
 
+# Define color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to log messages
+log_message() {
+    echo -e "$1"
+}
+
+# Function to convert string to uppercase
+to_uppercase() {
+    echo "$1" | tr '[:lower:]' '[:upper:]'
+}
+
 # Function to check for updates
 check_for_updates() {
     log_message "${YELLOW}🔄 Checking for updates...${NC}"
@@ -54,7 +70,7 @@ update_version() {
             read -p "Enter the new version number: " new_version
             npm version $new_version --no-git-tag-version
             ;;
-        *)
+        *) 
             log_message "${RED}Invalid choice. Skipping version update.${NC}"
             return
             ;;
@@ -95,59 +111,6 @@ usage() {
     echo "  -u    Check for updates"
     echo "  -h    Display this help message"
     exit 1
-}
-
-# Default values
-DEPLOYMENT_REGION="europe-west1"
-SOURCE_PATH="."
-SKIP_CONFIRMATION=false
-CHECK_UPDATES=false
-
-# Parse command line arguments
-while getopts "e:p:n:r:s:l:k:yuh" opt; do
-  case $opt in
-    e) ENVIRONMENT="$OPTARG" ;;
-    p) PROJECT_ID="$OPTARG" ;;
-    n) DEPLOYMENT_NAME="$OPTARG" ;;
-    r) DEPLOYMENT_REGION="$OPTARG" ;;
-    s) SOURCE_PATH="$OPTARG" ;;
-    l) SECRET_LABEL="$OPTARG" ;;
-    k) SERVICE_KEY_NAME="$OPTARG" ;;
-    y) SKIP_CONFIRMATION=true ;;
-    u) CHECK_UPDATES=true ;;
-    h) usage ;;
-    \?) echo "Invalid option -$OPTARG" >&2; usage ;;
-  esac
-done
-
-# Check for updates if flag is set
-if [ "$CHECK_UPDATES" = true ]; then
-    check_for_updates
-fi
-
-# Check for required arguments
-if [ -z "$ENVIRONMENT" ] || [ -z "$PROJECT_ID" ] || [ -z "$DEPLOYMENT_NAME" ]; then
-    echo "Error: Missing required arguments"
-    usage
-fi
-
-# Set default SECRET_LABEL if not provided
-SECRET_LABEL=${SECRET_LABEL:-"env=$ENVIRONMENT"}
-
-# Define color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Function to log messages
-log_message() {
-    echo -e "$1"
-}
-
-# Function to convert string to uppercase
-to_uppercase() {
-    echo "$1" | tr '[:lower:]' '[:upper:]'
 }
 
 # Function to fetch secrets based on label and generate secret flags
@@ -230,6 +193,43 @@ update_dockerfile_env() {
         log_message "${RED}❌ Failed to update Dockerfile.${NC}"
     fi
 }
+
+# Default values
+DEPLOYMENT_REGION="europe-west1"
+SOURCE_PATH="."
+SKIP_CONFIRMATION=false
+CHECK_UPDATES=false
+
+# Parse command line arguments
+while getopts "e:p:n:r:s:l:k:yuh" opt; do
+  case $opt in
+    e) ENVIRONMENT="$OPTARG" ;;
+    p) PROJECT_ID="$OPTARG" ;;
+    n) DEPLOYMENT_NAME="$OPTARG" ;;
+    r) DEPLOYMENT_REGION="$OPTARG" ;;
+    s) SOURCE_PATH="$OPTARG" ;;
+    l) SECRET_LABEL="$OPTARG" ;;
+    k) SERVICE_KEY_NAME="$OPTARG" ;;
+    y) SKIP_CONFIRMATION=true ;;
+    u) CHECK_UPDATES=true ;;
+    h) usage ;;
+    \?) echo "Invalid option -$OPTARG" >&2; usage ;;
+  esac
+done
+
+# Check for updates if flag is set
+if [ "$CHECK_UPDATES" = true ]; then
+    check_for_updates
+fi
+
+# Check for required arguments
+if [ -z "$ENVIRONMENT" ] || [ -z "$PROJECT_ID" ] || [ -z "$DEPLOYMENT_NAME" ]; then
+    echo "Error: Missing required arguments"
+    usage
+fi
+
+# Set default SECRET_LABEL if not provided
+SECRET_LABEL=${SECRET_LABEL:-"env=$ENVIRONMENT"}
 
 # --- Main Script Execution ---
 
