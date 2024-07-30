@@ -3,14 +3,45 @@
 # This script is used to deploy the server to Google Cloud Run.
 # It automatically imports secrets from Google Cloud Secret Manager based on labels.
 # It also handles the service key and .gitignore modifications.
-# Now includes an auto-update feature.
+# Now includes an auto-update feature with config preservation.
 
 # Author @VindicoRory
 
 # --- Auto-update Configuration ---
-REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend/"
+REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
 SCRIPT_NAME="$(basename "$0")"
-VERSION="1.0.0"
+VERSION="1.1"
+
+# --- Configuration Variables ---
+# These variables will be preserved across updates
+CONFIG_VARS=(
+    "PROJECT_ID"
+    "DEPLOYMENT_NAME"
+    "DEPLOYMENT_REGION"
+    "SOURCE_PATH"
+    "ENVIRONMENT"
+    "SECRET_LABEL"
+    "SERVICE_KEY_NAME"
+)
+
+# Function to extract configuration
+extract_config() {
+    local config_file="/tmp/${SCRIPT_NAME}_config"
+    for var in "${CONFIG_VARS[@]}"; do
+        if [ -n "${!var}" ]; then
+            echo "${var}='${!var}'" >> "$config_file"
+        fi
+    done
+}
+
+# Function to apply configuration
+apply_config() {
+    local config_file="/tmp/${SCRIPT_NAME}_config"
+    if [ -f "$config_file" ]; then
+        source "$config_file"
+        rm "$config_file"
+    fi
+}
 
 # Function to check for updates
 check_for_updates() {
@@ -23,10 +54,11 @@ check_for_updates() {
                 log_message "${GREEN}✅ Update available: $remote_version${NC}"
                 read -p "Do you want to update? (y/n): " update_confirm
                 if [[ $update_confirm == [Yy] ]]; then
+                    extract_config
                     mv "$tmp_file" "$0"
                     chmod +x "$0"
-                    log_message "${GREEN}✅ Script updated. Please run the script again.${NC}"
-                    exit 0
+                    log_message "${GREEN}✅ Script updated. Restarting with preserved config...${NC}"
+                    exec "$0" "$@"
                 else
                     log_message "${YELLOW}⚠️ Update skipped.${NC}"
                 fi
@@ -39,31 +71,19 @@ check_for_updates() {
     fi
 }
 
-# --- Configuration Variables ---
-
-# Set the default GCR project ID
+# Set default values for configuration variables
 PROJECT_ID=""
-
-# Set the default GCR deployment name
 DEPLOYMENT_NAME=""
-
-# Region for GCR deployment
 DEPLOYMENT_REGION="europe-west1"
-
-# Path to the source code
 SOURCE_PATH="."
-
-# Environment
 ENVIRONMENT="staging"
-
-# Label key-value pair for selecting secrets (adjust if needed)
 SECRET_LABEL="env=$ENVIRONMENT"
-
-# Firebase Service Key Name (Optional. This is used to ensure that the service key is not committed to git)
-# Leave this empty if you don't want to use this feature
 SERVICE_KEY_NAME=""
 
-# --- End of Configuration Variables ---
+# Apply saved configuration (if any)
+apply_config
+
+# --- Rest of the script (functions and main logic) remains the same ---
 
 # Define color codes for output
 RED='\033[0;31m'
@@ -179,7 +199,7 @@ done
 # --- Main Script Execution ---
 
 # Check for updates
-check_for_updates
+check_for_updates "$@"
 
 echo -e "${YELLOW}🚀 Starting Deployment Process... ${RED}($ENVIRONMENT) ${NC}"
 
