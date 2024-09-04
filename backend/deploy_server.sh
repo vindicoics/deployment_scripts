@@ -8,7 +8,7 @@
 
 VERSION="2.0.0"
 SCRIPT_NAME="$(basename "$0")"
-REPO_URL="https://raw.githubusercontent.com/VindicoRory/deployment_scripts/main/backend"
+REPO_URL="https://raw.githubusercontent.com/vindicoics/deployment_scripts/main/backend"
 
 # Define color codes for output
 RED='\033[0;31m'
